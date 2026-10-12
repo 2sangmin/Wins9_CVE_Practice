@@ -1,0 +1,9 @@
+# 모든 텍스트 파일 줄바꿈을 LF로 통일.
+# (쉘스크립트/Dockerfile 이 CRLF면 리눅스 컨테이너에서 깨지므로 필수)
+* text=auto eol=lf
+
+*.sh       text eol=lf
+*.py       text eol=lf
+*.conf     text eol=lf
+*.yml      text eol=lf
+Dockerfile text eol=lf

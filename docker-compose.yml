@@ -1,0 +1,42 @@
+# CVE-2026-21962 — OHS 접근제어 우회 CTF (컨테이너 2개: 프론트 OHS + 모의 백엔드)
+# 배정 포트 10008. 바깥에 열리는 건 OHS 하나뿐, 백엔드는 내부 전용.
+services:
+  ohs-front:
+    build: ./ohs
+    container_name: chal_2026_21962_ohs
+    ports:
+      - "10008:7777"          # 바깥=배정포트 10008 / 안=OHS 기본 7777
+    environment:
+      - BACKEND_HOST=backend
+      - BACKEND_PORT=7101
+    depends_on:
+      - backend
+    restart: unless-stopped
+    mem_limit: 256m            # 규칙11. OHS가 빠듯하면 README의 튜닝 참고, 안되면 사전 공유.
+    cpus: "0.5"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:7777/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - chal_2026_21962_net
+
+  backend:
+    build: ./backend
+    container_name: chal_2026_21962_backend
+    environment:
+      # 실제 플래그는 커밋 금지. `FLAG=... docker compose up` 으로 런타임 주입.
+      - FLAG=${FLAG:-WINS{placeholder_set_at_runtime}}
+      - BACKEND_PORT=7101
+    expose:
+      - "7101"                 # 내부 네트워크 전용 (바깥 노출 X)
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: "0.5"
+    networks:
+      - chal_2026_21962_net
+
+networks:
+  chal_2026_21962_net:
+    driver: bridge
