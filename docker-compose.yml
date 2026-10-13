@@ -3,6 +3,8 @@
 services:
   ohs-front:
     build: ./ohs
+    image: cve-2026-21962-ohs-front    # 이름 고정 → 미리 빌드/전달한 이미지를 그대로 사용
+    platform: linux/amd64      # OHS가 x86 전용 → ARM 호스트에선 QEMU 에뮬레이션으로 구동
     container_name: chal_2026_21962_ohs
     ports:
       - "10008:7777"          # 바깥=배정포트 10008 / 안=OHS 기본 7777
@@ -24,9 +26,11 @@ services:
 
   backend:
     build: ./backend
+    image: cve-2026-21962-backend      # 이름 고정 → 미리 빌드/전달한 이미지를 그대로 사용
     container_name: chal_2026_21962_backend
     environment:
-      # 실제 플래그는 커밋 금지. `FLAG=... docker compose up` 으로 런타임 주입.
+      # 대회(GZCTF)=GZCTF_FLAG, 로컬 검수=FLAG — 둘 다 전달 (하드코딩 금지)
+      - GZCTF_FLAG=${GZCTF_FLAG:-}
       - FLAG=${FLAG:-WINS{placeholder_set_at_runtime}}
       - BACKEND_PORT=7101
     expose:

