@@ -15,7 +15,13 @@ import os
 import sys
 import posixpath
 import urllib.parse
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer
+try:
+    from http.server import ThreadingHTTPServer  # Python 3.7+
+except ImportError:  # Python 3.6 (Oracle Linux 7 python3)
+    from socketserver import ThreadingMixIn
+    class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
+        daemon_threads = True
 
 # 대회(GZCTF)는 GZCTF_FLAG, 로컬 검수는 FLAG — 둘 다 대응
 FLAG = os.environ.get("GZCTF_FLAG") or os.environ.get("FLAG", "WINS{placeholder}")
